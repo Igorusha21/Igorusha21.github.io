@@ -1,156 +1,692 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Тестовое приложение</title>
-  <style>
-    /* Стили */
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f5f5f5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindMap Creator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            display: flex;
+            height: 100vh;
+            box-sizing: border-box;
+        }
 
-    .container {
-      background-color: white;
-      padding: 2rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      max-width: 600px;
-      width: 100%;
-    }
+        .sidebar {
+            width: 200px;
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            margin-right: 10px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
 
-    .question {
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-bottom: 1rem;
-    }
+        #menu, #shapeControls {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
 
-    .answer-button {
-      display: block;
-      width: 100%;
-      padding: 0.8rem 1.2rem;
-      background-color: #f0f0f0;
-      border: none;
-      border-radius: 4px;
-      text-align: left;
-      margin-bottom: 0.5rem;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
+        #backToMenu {
+            align-self: flex-start;
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
 
-    .answer-button:hover {
-      background-color: #e0e0e0;
-    }
+        #saveMapBtn {
+            margin-top: auto;
+            padding: 10px;
+            background-color: #3a3a3a;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
 
-    .answer-button.correct {
-      background-color: #4caf50;
-      color: white;
-    }
+        #saveMapBtn:hover {
+            background-color: #4a4a4a;
+        }
 
-    .answer-button.incorrect {
-      background-color: #f44336;
-      color: white;
-    }
+        .sidebar h2 {
+            margin-bottom: 20px;
+        }
+        .menu-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #3a3a3a;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 10px;
+        }
+        .menu-btn:hover {
+            background-color: #4a4a4a;
+        }
 
-    .controls {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 1rem;
-    }
+        .menu-btn:last-child {
+            margin-bottom: 0;
+        }
 
-    .controls button {
-      padding: 0.6rem 1rem;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
+        .back-btn {
+            align-self: flex-start;
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            padding: 0;
+        }
 
-    .controls button:hover {
-      background-color: #0056b3;
-    }
-  </style>
+        .save-btn {
+            margin-top: auto;
+        }
+
+        #addRectangle {
+            width: 100%;
+            padding: 10px;
+            background-color: #3a3a3a;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #addRectangle:hover {
+            background-color: #4a4a4a;
+        }
+
+        #canvas {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            background-color: #222;
+            border-radius: 15px;
+        }
+
+        .shape {
+            position: absolute;
+            background-color: #3498db;
+            border-radius: 5px;
+            transition: all 0.1s ease;
+        }
+
+        .shape-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .shape-content {
+            width: calc(100% - 20px);
+            height: calc(100% - 20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .shape-text {
+            color: #ffffff;
+            font-size: 16px;
+            text-align: center;
+            padding: 10px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            overflow: auto;
+            cursor: text;
+        }
+
+        .shape-border {
+            position: absolute;
+            background-color: transparent;
+        }
+
+        .shape-border-top, .shape-border-bottom {
+            height: 10px;
+            width: 100%;
+            cursor: ns-resize;
+        }
+
+        .shape-border-left, .shape-border-right {
+            width: 10px;
+            height: 100%;
+            cursor: ew-resize;
+        }
+
+        .shape-border-top { top: -5px; }
+        .shape-border-bottom { bottom: -5px; }
+        .shape-border-left { left: -5px; }
+        .shape-border-right { right: -5px; }
+
+        .shape-corner {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #ffffff;
+            border-radius: 50%;
+        }
+
+        .shape-corner-tl { top: -5px; left: -5px; cursor: nwse-resize; }
+        .shape-corner-tr { top: -5px; right: -5px; cursor: nesw-resize; }
+        .shape-corner-bl { bottom: -5px; left: -5px; cursor: nesw-resize; }
+        .shape-corner-br { bottom: -5px; right: -5px; cursor: nwse-resize; }
+
+        .shape-controls {
+            position: absolute;
+            top: -25px;
+            right: 5px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .shape-move,
+        .shape-delete {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            background-color: rgba(255, 255, 255, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s ease;
+            border-radius: 5px;
+        }
+
+        .shape-move {
+            cursor: move;
+        }
+
+        .shape-delete {
+            color: #ff4444;
+        }
+
+        .shape-move:hover,
+        .shape-delete:hover {
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .shape-move::before,
+        .shape-move::after {
+            content: '';
+            position: absolute;
+            background-color: #333;
+        }
+
+        .shape-move::before {
+            width: 10px;
+            height: 2px;
+        }
+
+        .shape-move::after {
+            width: 2px;
+            height: 10px;
+        }
+
+        .shape-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .shape-text {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+        }
+        .shape-color {
+            cursor: pointer;
+        }
+
+        .color-menu {
+            position: absolute;
+            top: -25px;
+            right: 5px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 5px;
+            z-index: 1000;
+        }
+
+        .color-picker {
+            margin-top: 10px;
+            padding: 5px;
+            background-color: #3a3a3a;
+            border-radius: 5px;
+        }
+
+        .color-picker button {
+            display: block;
+            width: 100%;
+            margin-bottom: 5px;
+            padding: 5px;
+            background-color: #4a4a4a;
+            color: #ffffff;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .color-picker button:hover {
+            background-color: #5a5a5a;
+        }
+
+
+        #colorInput {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 3px;
+            padding: 0;
+            cursor: pointer;
+        }
+        #applyColor {
+            padding: 5px 10px;
+            background-color: #4a4a4a;
+            color: #ffffff;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        #applyColor:hover {
+            background-color: #5a5a5a;
+        }
+        .sidebar {
+            width: 200px;
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            margin-right: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #colorControls {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        #shapeColorBtn, #textColorBtn {
+            width: 100%;
+            padding: 10px;
+            background-color: #3a3a3a;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 10px; /* Добавляем отступ снизу для каждой кнопки */
+        }
+        #shapeColorBtn:last-child, #textColorBtn:last-child {
+            margin-bottom: 0; /* Убираем отступ у последней кнопки */
+        }
+
+        #shapeColorBtn:hover, #textColorBtn:hover {
+            background-color: #4a4a4a;
+        }
+        #shapeColorBtn.active, #textColorBtn.active {
+            background-color: #555555;
+        }
+
+        #colorPicker {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #3a3a3a;
+            border-radius: 5px;
+        }
+        .color-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="question" id="question"></div>
-    <div id="answers"></div>
-    <div class="controls">
-      <button id="prevBtn" disabled>Предыдущий</button>
-      <button id="nextBtn">Следующий</button>
+    <div class="sidebar">
+        <div id="menu">
+            <h2>Меню</h2>
+            <button id="newMapBtn" class="menu-btn">Новая карта</button>
+            <button id="savedMapsBtn" class="menu-btn">Сохранённые карты</button>
+        </div>
+        <div id="shapeControls" style="display: none;">
+            <button id="backToMenu" class="back-btn">←</button>
+            <h2>Фигуры</h2>
+            <button id="addRectangle" class="menu-btn">Прямоугольник</button>
+            <div id="colorControls" style="display: none;">
+                <button id="shapeColorBtn" class="menu-btn">Цвет фигуры</button>
+                <button id="textColorBtn" class="menu-btn">Цвет текста</button>
+                <div id="colorPicker" style="display: none;">
+                    <div class="color-picker-container">
+                        <input type="color" id="colorInput">
+                        <button id="applyColor" class="menu-btn">Применить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button id="saveMapBtn" class="menu-btn save-btn">Сохранить карту</button>
+    </div>   
+    <div id="canvas">
+        <!-- Здесь будут размещаться фигуры -->
     </div>
-  </div>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('canvas');
+            const menu = document.getElementById('menu');
+            const shapeControls = document.getElementById('shapeControls');
+            const newMapBtn = document.getElementById('newMapBtn');
+            const savedMapsBtn = document.getElementById('savedMapsBtn');
+            const backToMenuBtn = document.getElementById('backToMenu');
+            const addRectangleBtn = document.getElementById('addRectangle');
+            const colorControls = document.getElementById('colorControls');
+            const colorPicker = document.getElementById('colorPicker');
+            const colorInput = document.getElementById('colorInput');
+            const shapeColorBtn = document.getElementById('shapeColorBtn');
+            const textColorBtn = document.getElementById('textColorBtn');
+            const applyColorBtn = document.getElementById('applyColor');
+            const saveMapBtn = document.getElementById('saveMapBtn');
+            const sidebar = document.querySelector('.sidebar');
+            let shapeCount = 0;
+            let activeShape = null;
+            let colorTarget = null;
+            let currentMap = null;
+            let maps = JSON.parse(localStorage.getItem('mindmaps')) || {};
 
-  <script>
-    // Данные для теста
-    const testData = [
-      {
-        question: "Концентраторы напряжений при работе вала:",
-        options: [
-          "снижают сопротивление усталости",
-          "повышают статическую прочность",
-          "снижают вибрации",
-          "повышают допускаемые напряжения"
-        ],
-        correctAnswer: 0
-      },
-      // Добавьте остальные вопросы здесь
-    ];
+            newMapBtn.addEventListener('click', createNewMap);
+            savedMapsBtn.addEventListener('click', showSavedMaps);
+            backToMenuBtn.addEventListener('click', showMenu);
+            addRectangleBtn.addEventListener('click', createRectangle);
+            saveMapBtn.addEventListener('click', saveMap);
 
-    let currentQuestionIndex = 0;
+            // Изначально скрываем кнопку "Сохранить карту"
+            saveMapBtn.style.display = 'none';
 
-    function renderQuestion() {
-      const question = testData[currentQuestionIndex];
-      document.getElementById("question").textContent = question.question;
+            function createNewMap() {
+                const mapName = prompt("Введите имя новой карты:");
+                if (mapName) {
+                    currentMap = { name: mapName, shapes: [] };
+                    showShapeControls();
+                }
+            }
 
-      const answersContainer = document.getElementById("answers");
-      answersContainer.innerHTML = "";
+            function showSavedMaps() {
+                const mapNames = Object.keys(maps);
+                if (mapNames.length === 0) {
+                    alert("Нет сохраненных карт");
+                    return;
+                }
 
-      question.options.forEach((option, index) => {
-        const button = document.createElement("button");
-        button.classList.add("answer-button");
-        button.textContent = option;
-        button.addEventListener("click", () => handleAnswer(index));
-        answersContainer.appendChild(button);
-      });
+                const mapList = mapNames.map((name, index) => `${index + 1}. ${name}`).join('\n');
+                const selectedIndex = prompt(`Выберите карту для загрузки:\n${mapList}`) - 1;
 
-      document.getElementById("prevBtn").disabled = currentQuestionIndex === 0;
-      document.getElementById("nextBtn").disabled = currentQuestionIndex === testData.length - 1;
-    }
+                if (selectedIndex >= 0 && selectedIndex < mapNames.length) {
+                    loadMap(mapNames[selectedIndex]);
+                } else {
+                    alert("Неверный выбор");
+                }
+            }
 
-    function handleAnswer(selectedIndex) {
-      const question = testData[currentQuestionIndex];
-      const answerButtons = document.querySelectorAll(".answer-button");
+            function showMenu() {
+                sidebar.style.transform = 'translateX(-100%)';
+                setTimeout(() => {
+                    menu.style.display = 'block';
+                    shapeControls.style.display = 'none';
+                    saveMapBtn.style.display = 'none';
+                    canvas.innerHTML = '';
+                    currentMap = null;
+                    sidebar.style.transform = 'translateX(0)';
+                }, 300);
+            }
 
-      answerButtons.forEach((button, index) => {
-        if (index === question.correctAnswer) {
-          button.classList.add("correct");
-        } else if (index === selectedIndex) {
-          button.classList.add("incorrect");
-        }
-        button.disabled = true;
-      });
-    }
+            function showShapeControls() {
+                sidebar.style.transform = 'translateX(-100%)';
+                setTimeout(() => {
+                    menu.style.display = 'none';
+                    shapeControls.style.display = 'block';
+                    saveMapBtn.style.display = 'block';
+                    sidebar.style.transform = 'translateX(0)';
+                }, 300);
+            }
 
-    document.getElementById("prevBtn").addEventListener("click", () => {
-      currentQuestionIndex--;
-      renderQuestion();
-    });
+            function createRectangle() {
+                const rect = document.createElement('div');
+                rect.className = 'shape';
+                rect.style.width = '150px';
+                rect.style.height = '100px';
+                rect.style.left = `${250 + shapeCount * 20}px`;
+                rect.style.top = `${100 + shapeCount * 20}px`;
+            
+                rect.innerHTML = `
+                    <div class="shape-container">
+                        <div class="shape-controls">
+                            <div class="shape-color">🎨</div>
+                            <div class="shape-move"></div>
+                            <div class="shape-delete">✕</div>
+                        </div>
+                        <div class="shape-content">
+                            <div class="shape-text" contenteditable="true">Новая фигура</div>
+                        </div>
+                    </div>
+                `;
+            
+                canvas.appendChild(rect);
+                initializeInteractions(rect);
+                shapeCount++;
+            }       
 
-    document.getElementById("nextBtn").addEventListener("click", () => {
-      currentQuestionIndex++;
-      renderQuestion();
-    });
+            function initializeInteractions(element) {
+                const moveHandle = element.querySelector('.shape-move');
+                const deleteHandle = element.querySelector('.shape-delete');
+                const colorHandle = element.querySelector('.shape-color');
+                let isDragging = false;
+                let initialX, initialY;
 
-    renderQuestion();
-  </script>
+                moveHandle.addEventListener('mousedown', startDragging);
+                deleteHandle.addEventListener('click', deleteShape);
+                colorHandle.addEventListener('click', toggleColorControls);
+                
+                function toggleColorControls(e) {
+                    e.stopPropagation();
+                    activeShape = element;
+                    colorControls.style.display = 'block';
+                    colorPicker.style.display = 'none';
+                }
+
+                function startDragging(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isDragging = true;
+                    initialX = e.clientX - element.offsetLeft;
+                    initialY = e.clientY - element.offsetTop;
+                    document.addEventListener('mousemove', drag);
+                    document.addEventListener('mouseup', stopDragging);
+                }
+
+                function drag(e) {
+                    if (!isDragging) return;
+                    e.preventDefault();
+                    const newX = e.clientX - initialX;
+                    const newY = e.clientY - initialY;
+                    
+                    const currentWidth = element.offsetWidth;
+                    const currentHeight = element.offsetHeight;
+                    
+                    element.style.left = `${newX}px`;
+                    element.style.top = `${newY}px`;
+                    
+                    element.style.width = `${currentWidth}px`;
+                    element.style.height = `${currentHeight}px`;
+                }
+
+                function stopDragging() {
+                    isDragging = false;
+                    document.removeEventListener('mousemove', drag);
+                    document.removeEventListener('mouseup', stopDragging);
+                }
+
+                function deleteShape(e) {
+                    e.stopPropagation();
+                    element.remove();
+                    if (activeShape === element) {
+                        colorControls.style.display = 'none';
+                        colorPicker.style.display = 'none';
+                        activeShape = null;
+                    }
+                }
+
+                interact(element).resizable({
+                    edges: { top: true, left: true, bottom: true, right: true },
+                    listeners: {
+                        move(event) {
+                            const target = event.target;
+                            const x = parseFloat(target.getAttribute('data-x') || 0) + event.deltaRect.left;
+                            const y = parseFloat(target.getAttribute('data-y') || 0) + event.deltaRect.top;
+
+                            target.style.width = `${event.rect.width}px`;
+                            target.style.height = `${event.rect.height}px`;
+
+                            target.style.left = `${parseFloat(target.style.left || 0) + event.deltaRect.left}px`;
+                            target.style.top = `${parseFloat(target.style.top || 0) + event.deltaRect.top}px`;
+
+                            target.setAttribute('data-x', x);
+                            target.setAttribute('data-y', y);
+                        }
+                    },
+                    modifiers: [
+                        interact.modifiers.restrictSize({
+                            min: { width: 100, height: 50 }
+                        })
+                    ]
+                });
+            }
+
+            function showColorPicker(target) {
+                colorTarget = target;
+                colorPicker.style.display = 'block';
+            }
+
+            shapeColorBtn.addEventListener('click', () => {
+                if (activeShape) {
+                    shapeColorBtn.classList.add('active');
+                    textColorBtn.classList.remove('active');
+                    showColorPicker('shape');
+                }
+            });
+
+            textColorBtn.addEventListener('click', () => {
+                if (activeShape) {
+                    textColorBtn.classList.add('active');
+                    shapeColorBtn.classList.remove('active');
+                    showColorPicker('text');
+                }
+            });
+
+            applyColorBtn.addEventListener('click', () => {
+                if (activeShape && colorTarget) {
+                    const color = colorInput.value;
+                    if (colorTarget === 'shape') {
+                        activeShape.style.backgroundColor = color;
+                    } else if (colorTarget === 'text') {
+                        activeShape.querySelector('.shape-text').style.color = color;
+                    }
+                    colorPicker.style.display = 'none';
+                }
+            });
+
+            function saveMap() {
+                if (currentMap) {
+                    const shapes = Array.from(canvas.querySelectorAll('.shape')).map(shape => ({
+                        left: shape.style.left,
+                        top: shape.style.top,
+                        width: shape.style.width,
+                        height: shape.style.height,
+                        backgroundColor: shape.style.backgroundColor,
+                        text: shape.querySelector('.shape-text').innerText,
+                        textColor: shape.querySelector('.shape-text').style.color
+                    }));
+
+                    currentMap.shapes = shapes;
+                    maps[currentMap.name] = currentMap;
+                    localStorage.setItem('mindmaps', JSON.stringify(maps));
+                    alert(`Карта "${currentMap.name}" сохранена`);
+                } else {
+                    alert("Нет активной карты для сохранения");
+                }
+            }
+
+            function loadMap(mapName) {
+                const loadedMap = maps[mapName];
+                if (loadedMap) {
+                    currentMap = loadedMap;
+                    canvas.innerHTML = '';
+                    loadedMap.shapes.forEach(shapeData => {
+                        const shape = document.createElement('div');
+                        shape.className = 'shape';
+                        shape.style.left = shapeData.left;
+                        shape.style.top = shapeData.top;
+                        shape.style.width = shapeData.width;
+                        shape.style.height = shapeData.height;
+                        shape.style.backgroundColor = shapeData.backgroundColor;
+
+                        shape.innerHTML = `
+                            <div class="shape-container">
+                                <div class="shape-controls">
+                                    <div class="shape-color">🎨</div>
+                                    <div class="shape-move"></div>
+                                    <div class="shape-delete">✕</div>
+                                </div>
+                                <div class="shape-content">
+                                    <div class="shape-text" contenteditable="true" style="color: ${shapeData.textColor}">${shapeData.text}</div>
+                                </div>
+                            </div>
+                        `;
+
+                        canvas.appendChild(shape);
+                        initializeInteractions(shape);
+                    });
+                    showShapeControls();
+                } else {
+                    alert("Карта не найдена");
+                }
+            }
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#colorControls') && !e.target.closest('.shape-color')) {
+                    colorControls.style.display = 'none';
+                    colorPicker.style.display = 'none';
+                    shapeColorBtn.classList.remove('active');
+                    textColorBtn.classList.remove('active');
+                    activeShape = null;
+                }
+            });
+        });
+    </script>
 </body>
 </html>
+
