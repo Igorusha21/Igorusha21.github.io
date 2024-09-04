@@ -365,6 +365,18 @@
             align-items: center;
             gap: 10px;
         }
+        #canvas {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            background-color: #222;
+            border-radius: 15px;
+        }
+
+        #zoomContainer {
+            position: absolute;
+            transform-origin: 0 0;
+        }
     </style>
 </head>
 <body>
@@ -392,12 +404,15 @@
         <button id="saveMapBtn" class="menu-btn save-btn">Сохранить карту</button>
     </div>   
     <div id="canvas">
-        <!-- Здесь будут размещаться фигуры -->
+        <div id="zoomContainer">
+            <!-- Здесь будут размещаться фигуры -->
+        </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const canvas = document.getElementById('canvas');
+            const zoomContainer = document.getElementById('zoomContainer');
             const menu = document.getElementById('menu');
             const shapeControls = document.getElementById('shapeControls');
             const newMapBtn = document.getElementById('newMapBtn');
@@ -417,6 +432,10 @@
             let colorTarget = null;
             let currentMap = null;
             let maps = JSON.parse(localStorage.getItem('mindmaps')) || {};
+            let scale = 1;
+            let panning = false;
+            let startPoint = { x: 0, y: 0 };
+            let endPoint = { x: 0, y: 0 };
 
             newMapBtn.addEventListener('click', createNewMap);
             savedMapsBtn.addEventListener('click', showSavedMaps);
@@ -427,30 +446,159 @@
             // Изначально скрываем кнопку "Сохранить карту"
             saveMapBtn.style.display = 'none';
 
-            function createNewMap() {
-                const mapName = prompt("Введите имя новой карты:");
-                if (mapName) {
-                    currentMap = { name: mapName, shapes: [] };
-                    showShapeControls();
+            function resetZoom() {
+                scale = 1;
+                endPoint = { x: 0, y: 0 };
+                applyTransform();
+            }
+
+            function applyTransform() {
+                zoomContainer.style.transform = `translate(${endPoint.x}px, ${endPoint.y}px) scale(${scale})`;
+            }
+
+            function zoom(event) {
+                event.preventDefault();
+                const oldScale = scale;
+                scale += event.deltaY * -0.001;
+                // Ограничиваем масштаб от 0.125 до 1 (исходный размер)
+                scale = Math.min(Math.max(0.125, scale), 1);
+                
+                // Если масштаб не изменился, не применяем трансформацию
+                if (oldScale !== scale) {
+                    applyTransform();
                 }
             }
 
+            function startPan(event) {
+                if (event.button === 1) {
+                    event.preventDefault();
+                    panning = true;
+                    startPoint = { x: event.clientX - endPoint.x, y: event.clientY - endPoint.y };
+                }
+            }
+
+            function pan(event) {
+                if (!panning) return;
+                endPoint = {
+                    x: event.clientX - startPoint.x,
+                    y: event.clientY - startPoint.y
+                };
+                applyTransform();
+            }
+
+            function endPan() {
+                panning = false;
+            }
+
+            canvas.addEventListener('wheel', zoom);
+            canvas.addEventListener('mousedown', startPan);
+            canvas.addEventListener('mousemove', pan);
+            canvas.addEventListener('mouseup', endPan);
+            canvas.addEventListener('mouseleave', endPan);
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            function createNewMap() {
+    // Удаляем контейнер выбора карт, если он есть
+                const mapContainer = document.getElementById('mapContainer');
+                if (mapContainer) mapContainer.remove();
+
+                const mapName = prompt("Введите имя новой карты:");
+                if (mapName) {
+                    currentMap = { name: mapName, shapes: [], scale: 1, position: { x: 0, y: 0 } };
+                    zoomContainer.innerHTML = '';
+                    shapeCount = 0;
+                    resetZoom();
+                    showShapeControls();
+                }
+            }
             function showSavedMaps() {
+    // Удаляем существующий контейнер выбора карт, если он есть
+                const existingMapContainer = document.getElementById('mapContainer');
+                if (existingMapContainer) {
+                    existingMapContainer.remove();
+                }
+
                 const mapNames = Object.keys(maps);
                 if (mapNames.length === 0) {
                     alert("Нет сохраненных карт");
                     return;
                 }
 
-                const mapList = mapNames.map((name, index) => `${index + 1}. ${name}`).join('\n');
-                const selectedIndex = prompt(`Выберите карту для загрузки:\n${mapList}`) - 1;
+                // Создаем контейнер для отображения списка карт внутри левой панели
+                const mapContainer = document.createElement('div');
+                mapContainer.id = 'mapContainer'; // Устанавливаем ID для контейнера
+                mapContainer.style.backgroundColor = '#3a3a3a';
+                mapContainer.style.padding = '10px';
+                mapContainer.style.borderRadius = '10px';
+                mapContainer.style.marginTop = '10px';
+                mapContainer.style.maxHeight = '400px'; // Ограничиваем высоту контейнера
+                mapContainer.style.overflowY = 'auto'; // Добавляем прокрутку, если содержимое превышает высоту
 
-                if (selectedIndex >= 0 && selectedIndex < mapNames.length) {
-                    loadMap(mapNames[selectedIndex]);
-                } else {
-                    alert("Неверный выбор");
-                }
+                // Добавляем крестик для закрытия контейнера
+                const closeButton = document.createElement('button');
+                closeButton.textContent = '✕';
+                closeButton.style.float = 'right';
+                closeButton.style.backgroundColor = 'transparent';
+                closeButton.style.color = '#ffffff';
+                closeButton.style.border = 'none';
+                closeButton.style.fontSize = '16px';
+                closeButton.style.cursor = 'pointer';
+                closeButton.addEventListener('click', () => mapContainer.remove());
+                mapContainer.appendChild(closeButton);
+
+                // Создаем обертку для списка, чтобы отступить его от крестика
+                const listWrapper = document.createElement('div');
+                listWrapper.style.marginTop = '30px'; // Отступ списка от крестика
+
+                mapNames.forEach((name, index) => {
+                    // Создаем элемент для каждой карты
+                    const mapElement = document.createElement('div');
+                    mapElement.style.display = 'flex';
+                    mapElement.style.justifyContent = 'space-between';
+                    mapElement.style.alignItems = 'center';
+                    mapElement.style.marginBottom = '10px';
+
+                    const mapLabel = document.createElement('span');
+                    mapLabel.textContent = `${index + 1}. ${name}`;
+                    mapElement.appendChild(mapLabel);
+
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.style.display = 'flex';
+                    buttonContainer.style.flexDirection = 'column'; // Вертикальное расположение кнопок
+                    buttonContainer.style.gap = '5px'; // Отступ между кнопками
+
+                    const okButton = document.createElement('button');
+                    okButton.textContent = 'Открыть';
+                    okButton.style.backgroundColor = '#4a4a4a';
+                    okButton.style.color = '#ffffff';
+                    okButton.style.border = 'none';
+                    okButton.style.borderRadius = '5px';
+                    okButton.style.cursor = 'pointer';
+                    okButton.addEventListener('click', () => loadMap(name));
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Удалить';
+                    deleteButton.style.backgroundColor = '#ff4444';
+                    deleteButton.style.color = '#ffffff';
+                    deleteButton.style.border = 'none';
+                    deleteButton.style.borderRadius = '5px';
+                    deleteButton.style.cursor = 'pointer';
+                    deleteButton.addEventListener('click', () => deleteMap(name));
+
+                    buttonContainer.appendChild(okButton);
+                    buttonContainer.appendChild(deleteButton);
+                    mapElement.appendChild(buttonContainer);
+
+                    listWrapper.appendChild(mapElement);
+                });
+
+                // Добавляем обертку списка в контейнер
+                mapContainer.appendChild(listWrapper);
+
+                // Добавляем контейнер в левую панель (sidebar)
+                sidebar.appendChild(mapContainer);
             }
+
 
             function showMenu() {
                 sidebar.style.transform = 'translateX(-100%)';
@@ -458,8 +606,9 @@
                     menu.style.display = 'block';
                     shapeControls.style.display = 'none';
                     saveMapBtn.style.display = 'none';
-                    canvas.innerHTML = '';
+                    zoomContainer.innerHTML = '';
                     currentMap = null;
+                    resetZoom();
                     sidebar.style.transform = 'translateX(0)';
                 }, 300);
             }
@@ -475,13 +624,18 @@
             }
 
             function createRectangle() {
+                if (!currentMap) {
+                    console.error("Нет активной карты");
+                    alert("Пожалуйста, создайте или загрузите карту перед добавлением фигур");
+                    return;
+                }
                 const rect = document.createElement('div');
                 rect.className = 'shape';
                 rect.style.width = '150px';
                 rect.style.height = '100px';
                 rect.style.left = `${250 + shapeCount * 20}px`;
                 rect.style.top = `${100 + shapeCount * 20}px`;
-            
+
                 rect.innerHTML = `
                     <div class="shape-container">
                         <div class="shape-controls">
@@ -494,11 +648,11 @@
                         </div>
                     </div>
                 `;
-            
-                canvas.appendChild(rect);
+
+                zoomContainer.appendChild(rect);
                 initializeInteractions(rect);
                 shapeCount++;
-            }       
+            }
 
             function initializeInteractions(element) {
                 const moveHandle = element.querySelector('.shape-move');
@@ -621,7 +775,7 @@
 
             function saveMap() {
                 if (currentMap) {
-                    const shapes = Array.from(canvas.querySelectorAll('.shape')).map(shape => ({
+                    const shapes = Array.from(zoomContainer.querySelectorAll('.shape')).map(shape => ({
                         left: shape.style.left,
                         top: shape.style.top,
                         width: shape.style.width,
@@ -632,6 +786,8 @@
                     }));
 
                     currentMap.shapes = shapes;
+                    currentMap.scale = scale;
+                    currentMap.position = endPoint;
                     maps[currentMap.name] = currentMap;
                     localStorage.setItem('mindmaps', JSON.stringify(maps));
                     alert(`Карта "${currentMap.name}" сохранена`);
@@ -640,11 +796,28 @@
                 }
             }
 
+            function deleteMap(mapName) {
+                if (confirm(`Вы уверены, что хотите удалить карту "${mapName}"?`)) {
+                    delete maps[mapName];
+                    localStorage.setItem('mindmaps', JSON.stringify(maps));
+                    alert(`Карта "${mapName}" удалена`);
+                    showSavedMaps();  // Обновляем список карт
+                }
+            }
+
             function loadMap(mapName) {
+                // Удаляем контейнер выбора карт
+                const mapContainer = document.getElementById('mapContainer');
+                if (mapContainer) mapContainer.remove();
+
                 const loadedMap = maps[mapName];
                 if (loadedMap) {
                     currentMap = loadedMap;
-                    canvas.innerHTML = '';
+                    zoomContainer.innerHTML = '';
+                    scale = loadedMap.scale || 1;
+                    endPoint = loadedMap.position || { x: 0, y: 0 };
+                    applyTransform();
+
                     loadedMap.shapes.forEach(shapeData => {
                         const shape = document.createElement('div');
                         shape.className = 'shape';
@@ -667,9 +840,11 @@
                             </div>
                         `;
 
-                        canvas.appendChild(shape);
+                        zoomContainer.appendChild(shape);
                         initializeInteractions(shape);
                     });
+
+                    // Показываем элементы управления фигурами и кнопку сохранения
                     showShapeControls();
                 } else {
                     alert("Карта не найдена");
@@ -689,4 +864,5 @@
     </script>
 </body>
 </html>
+
 
